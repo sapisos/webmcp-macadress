@@ -1,0 +1,18 @@
+name = "webmcp-macadress"
+main = "src/index.js"
+compatibility_date = "2026-08-01"
+workers_dev = true
+
+[vars]
+# Comma-separated allowed origins. Use "*" while building; set it to your
+# deployed web app origin (e.g. https://webmcp-macadress.pages.dev) before the demo.
+ALLOWED_ORIGINS = "*"
+MAX_BATCH = "50"
+
+# Optional: 60 requests / 60s per client IP. Free, no KV needed.
+# If wrangler rejects this block, delete it - the Worker falls open without it.
+[[unsafe.bindings]]
+name = "RATE_LIMITER"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 60, period = 60 }

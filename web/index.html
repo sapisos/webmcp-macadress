@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>MAC Inventory Workbench - WebMCP x macadress.com</title>
+		<meta
+			name="description"
+			content="A WebMCP workbench where a human and a browser agent triage a network's MAC addresses together: paste raw data, enrich it against macadress.com, filter, and export an allowlist."
+		/>
+		<link rel="stylesheet" href="./styles.css" />
+		<script src="./config.js"></script>
+	</head>
+	<body>
+		<header>
+			<h1>MAC Inventory Workbench</h1>
+			<p class="sub">
+				A shared surface for a human and a browser agent. Paste raw network data, enrich every MAC against
+				<a href="https://macadress.com" target="_blank" rel="noopener">macadress.com</a>, slice it, and export an allowlist.
+				The agent uses the same seven tools the buttons do.
+			</p>
+			<p id="wmcp-status" class="status"></p>
+		</header>
+
+		<main>
+			<section class="panel">
+				<div class="panel-head">
+					<h2>1 - Input</h2>
+					<button id="sample" class="ghost">Load sample</button>
+				</div>
+				<textarea id="input" rows="7" placeholder="Paste an ARP table, DHCP lease file, nmap output, a spreadsheet column of MACs..."></textarea>
+				<div class="row">
+					<button id="parse">Parse MACs</button>
+					<button id="enrich" class="primary">Enrich all</button>
+					<button id="clear" class="ghost">Clear</button>
+				</div>
+			</section>
+
+			<section class="panel">
+				<div class="panel-head">
+					<h2>2 - Inventory</h2>
+					<span id="summary" class="summary"></span>
+				</div>
+				<div id="chips" class="chips"></div>
+				<div class="table-wrap">
+					<table>
+						<thead>
+							<tr>
+								<th>MAC</th>
+								<th>Vendor</th>
+								<th>Device</th>
+								<th>Virtualization</th>
+								<th>Flags</th>
+								<th>Notes</th>
+							</tr>
+						</thead>
+						<tbody id="tbody"></tbody>
+					</table>
+				</div>
+			</section>
+
+			<section class="panel">
+				<div class="panel-head">
+					<h2>3 - Export (visible rows)</h2>
+					<div class="row">
+						<select id="format">
+							<option value="nftables">nftables set</option>
+							<option value="zeek">Zeek annotation</option>
+							<option value="csv">CSV</option>
+						</select>
+						<button id="export">Build</button>
+					</div>
+				</div>
+				<textarea id="output" rows="8" readonly hidden></textarea>
+			</section>
+		</main>
+
+		<div id="toast" class="toast"></div>
+		<footer>
+			<a href="https://github.com/samymassoud/webmcp-macadress" target="_blank" rel="noopener">Source</a>
+			·
+			<a href="https://webmachinelearning.github.io/webmcp/" target="_blank" rel="noopener">WebMCP</a>
+			·
+			<a href="https://macadress.com/extensions" target="_blank" rel="noopener">macadress.com extensions</a>
+		</footer>
+
+		<script type="module" src="./app.js"></script>
+	</body>
+</html>

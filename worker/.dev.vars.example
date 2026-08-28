@@ -1,0 +1,3 @@
+# Copy to .dev.vars for `wrangler dev` (local only, git-ignored).
+# In production use: wrangler secret put MACADRESS_API_KEY
+MACADRESS_API_KEY=mk_your_demo_key_here

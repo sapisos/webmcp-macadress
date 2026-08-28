@@ -1,0 +1,27 @@
+# Sample: a messy mix of an ARP table, a few DHCP leases and some nmap output.
+# Paste anything like this - the workbench pulls the MAC addresses out.
+
+Internet  192.168.1.1     -   00:00:0c:9f:f0:01  ARPA   Vlan10
+Internet  192.168.1.20    5   f0:18:98:1a:2b:3c  ARPA   Vlan10
+Internet  192.168.1.21    3   3c:5a:b4:11:22:33  ARPA   Vlan10
+Internet  192.168.1.55    0   00:50:56:9a:1b:2c  ARPA   Vlan20
+Internet  192.168.1.56    1   00:1a:11:44:55:66  ARPA   Vlan20
+
+lease 192.168.1.104 {
+  hardware ethernet b8-27-eb-0a-1b-2c;
+  client-hostname "pi-sensor";
+}
+lease 192.168.1.130 {
+  hardware ethernet fa:12:34:56:78:9a;
+}
+
+Nmap scan report for 192.168.1.77
+MAC Address: 08:00:27:AB:CD:EF (Oracle VirtualBox virtual NIC)
+Nmap scan report for 192.168.1.90
+MAC Address: DC:A6:32:11:22:33 (Raspberry Pi Trading)
+Nmap scan report for 192.168.1.201
+MAC Address: 9E:2B:1F:44:8C:0D (Unknown)
+
+# a couple in odd formats
+0025.9c12.3456
+ac-de-48-00-11-22
