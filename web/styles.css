@@ -55,6 +55,18 @@ h1 {
 	font-size: 14px;
 }
 
+.hint {
+	margin: 8px 0 0;
+	font-size: 13px;
+	color: var(--muted);
+	max-width: 70ch;
+}
+
+.hint em {
+	color: var(--text);
+	font-style: normal;
+}
+
 main {
 	padding-bottom: 60px;
 }
