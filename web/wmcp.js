@@ -1,23 +1,20 @@
 /**
- * Tiny WebMCP adapter.
+ * WebMCP adapter for Chrome's implementation.
  *
- * WebMCP is a moving W3C Web ML Community Group draft. The tool-registration
- * surface has shifted across revisions (document.modelContext / navigator.modelContext,
- * registerTool(object) / registerTool(positional), provideContext({tools})).
- * This module is the ONE place that has to change if the spec moves under us.
+ * Chrome 149+ (chrome://flags/#enable-webmcp-testing) exposes
+ * `document.modelContext.registerTool({ name, description, inputSchema, execute })`
+ * where `execute(inputs, { signal })` must resolve to a STRING.
  *
- * App code calls defineTool({ name, description, inputSchema, handler }); the
- * handler returns any JS value and this adapter shapes it into the MCP-style
- * result the agent expects.
+ * App code calls defineTool({ name, description, inputSchema, handler }); handlers
+ * return any JS value and this module stringifies it for the agent. All the
+ * spec-surface assumptions live here so the rest of the app never touches them.
  */
 
-const registered = [];
+const results = []; // { name, ok }
 
 function getHost() {
 	if (typeof document !== 'undefined' && document.modelContext) return document.modelContext;
 	if (typeof navigator !== 'undefined' && navigator.modelContext) return navigator.modelContext;
-	if (typeof window !== 'undefined' && window.modelContext) return window.modelContext;
-	if (typeof window !== 'undefined' && window.mcp) return window.mcp; // older explainer name
 	return null;
 }
 
@@ -25,54 +22,38 @@ export function webmcpAvailable() {
 	return getHost() !== null;
 }
 
-function toResult(value) {
-	if (value && typeof value === 'object' && Array.isArray(value.content)) return value;
-	const text = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
-	return { content: [{ type: 'text', text }] };
+export function toolStatus() {
+	return {
+		total: results.length,
+		registered: results.filter((r) => r.ok).length,
+		failed: results.filter((r) => !r.ok).map((r) => r.name),
+	};
 }
 
-export function defineTool({ name, description, inputSchema, handler }) {
+function asString(value) {
+	return typeof value === 'string' ? value : JSON.stringify(value ?? null);
+}
+
+export async function defineTool({ name, description, inputSchema, handler }) {
 	const host = getHost();
-	const wrapped = async (args) => {
+	const entry = { name, ok: false };
+	results.push(entry);
+
+	if (!host || typeof host.registerTool !== 'function') return entry;
+
+	const execute = async (inputs, ctx) => {
 		try {
-			return toResult(await handler(args || {}));
+			return asString(await handler(inputs || {}, ctx || {}));
 		} catch (err) {
-			return toResult({ error: String(err && err.message ? err.message : err) });
+			return asString({ error: String((err && err.message) || err) });
 		}
 	};
 
-	registered.push({ name, description });
-	if (!host) return false;
-
-	const spec = { name, description, inputSchema, execute: wrapped, run: wrapped, handler: wrapped };
-
 	try {
-		if (typeof host.registerTool === 'function') {
-			// Object form (current draft).
-			try {
-				host.registerTool(spec);
-				return true;
-			} catch {
-				// Positional form (older drafts): (name, description, schema, fn)
-				host.registerTool(name, description, inputSchema, wrapped);
-				return true;
-			}
-		}
-		if (typeof host.provideContext === 'function') {
-			host.provideContext({ tools: [spec] });
-			return true;
-		}
-		if (typeof host.addTool === 'function') {
-			host.addTool(spec);
-			return true;
-		}
+		await host.registerTool({ name, description, inputSchema, execute });
+		entry.ok = true;
 	} catch (err) {
-		console.warn('[wmcp] registration failed for', name, err);
-		return false;
+		console.warn('[wmcp] registerTool failed for', name, err);
 	}
-	return false;
-}
-
-export function registeredTools() {
-	return registered.slice();
+	return entry;
 }

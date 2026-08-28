@@ -77,15 +77,17 @@ Set the Worker's `ALLOWED_ORIGINS` to the deployed origin before the demo.
 
 ### 3. Drive it with an agent
 
-Open the deployed URL in a WebMCP-enabled browser (ChatGPT's browser, or Chrome
-with the WebMCP flag). The status line shows `WebMCP connected` and the tool
-count. Ask the agent:
+1. Chrome 149+ with `chrome://flags/#enable-webmcp-testing`.
+2. Install the [Model Context Tool Inspector](https://chromewebstore.google.com/detail/model-context-tool-inspec/gbpdfapgefenggkahomfgkhfehlcenpd) extension (Chrome has no built-in agent).
+3. Open the deployed URL. The status line reads `WebMCP connected - 7 tools`.
+4. In the Inspector panel: the 7 tools are listed and individually callable, and the prompt box (routed to `gemini-3-flash-preview`) lets you drive them in natural language:
 
 > Load the sample data, add every MAC to the inventory and enrich it. Then tell
 > me how many are privacy-randomized, filter to just those, and export an
 > nftables set.
 
-Without WebMCP the app still runs fully in manual mode.
+Without WebMCP the app still runs fully in manual mode. `web/wmcp.js` is the only
+file coupled to the WebMCP surface.
 
 ## Security
 

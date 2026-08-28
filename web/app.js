@@ -1,4 +1,4 @@
-import { defineTool, webmcpAvailable, registeredTools } from './wmcp.js';
+import { defineTool, webmcpAvailable, toolStatus } from './wmcp.js';
 
 const PROXY = (window.MACADRESS_PROXY || '').replace(/\/$/, '');
 const DEMO_TOKEN = window.MACADRESS_DEMO_TOKEN || '';
@@ -241,8 +241,8 @@ const ops = {
 
 /* ------------------------------------------------------------------ WebMCP tools */
 
-function registerTools() {
-	defineTool({
+const TOOLS = [
+	{
 		name: 'add_mac_addresses',
 		description:
 			'Extract every MAC address from a block of text (ARP table, DHCP leases, nmap/pcap output, a spreadsheet paste) and add each one to the inventory as a pending row.',
@@ -252,34 +252,32 @@ function registerTools() {
 			required: ['text'],
 		},
 		handler: ({ text }) => ops.addMacs(text),
-	});
-
-	defineTool({
+	},
+	{
 		name: 'lookup_mac',
-		description: 'Look up a single MAC address and add it to the inventory. Returns the full macadress.com record (vendor, device category, virtualization, special-use, randomization).',
+		description:
+			'Look up a single MAC address and add it to the inventory. Returns the full macadress.com record (vendor, device category, virtualization, special-use, randomization).',
 		inputSchema: {
 			type: 'object',
 			properties: { mac: { type: 'string', description: 'A MAC address in any format (colon, hyphen, dotted, or bare hex).' } },
 			required: ['mac'],
 		},
 		handler: ({ mac }) => ops.lookup(mac),
-	});
-
-	defineTool({
+	},
+	{
 		name: 'enrich_inventory',
 		description: 'Resolve every pending MAC address in the inventory against macadress.com. Safe to call repeatedly; only unresolved rows are fetched.',
 		inputSchema: { type: 'object', properties: {} },
 		handler: () => ops.enrich(),
-	});
-
-	defineTool({
+	},
+	{
 		name: 'summarize_inventory',
-		description: 'Return counts across the enriched inventory: totals, how many are privacy-randomized, locally administered or unregistered, and breakdowns by vendor, device category and virtualization platform.',
+		description:
+			'Return counts across the enriched inventory: totals, how many are privacy-randomized, locally administered or unregistered, and breakdowns by vendor, device category and virtualization platform.',
 		inputSchema: { type: 'object', properties: {} },
 		handler: () => ops.summarize(),
-	});
-
-	defineTool({
+	},
+	{
 		name: 'filter_inventory',
 		description:
 			'Set the table filter so the human sees a specific slice. field is one of: all, randomized, unregistered, virtualization, vendor, device. For vendor and device also pass value.',
@@ -292,9 +290,8 @@ function registerTools() {
 			required: ['field'],
 		},
 		handler: ({ field, value }) => ops.setFilter(field, value),
-	});
-
-	defineTool({
+	},
+	{
 		name: 'export_filter_list',
 		description:
 			'Turn the currently visible (filtered) rows into a text artifact: an nftables ether_addr set, a Zeek annotation file, or CSV. Use after filter_inventory to hand the human something actionable.',
@@ -304,14 +301,17 @@ function registerTools() {
 			required: ['format'],
 		},
 		handler: ({ format }) => ({ format, text: ops.exportList(format) }),
-	});
-
-	defineTool({
+	},
+	{
 		name: 'clear_inventory',
 		description: 'Remove every row and reset the filter. Use when starting a new investigation.',
 		inputSchema: { type: 'object', properties: {} },
 		handler: () => ops.clear(),
-	});
+	},
+];
+
+function registerTools() {
+	return Promise.all(TOOLS.map((t) => defineTool(t)));
 }
 
 /* ------------------------------------------------------------------ UI */
@@ -419,16 +419,22 @@ function toast(msg) {
 
 /* ------------------------------------------------------------------ boot */
 
-function boot() {
+async function boot() {
 	wireUI();
-	registerTools();
 	onChange(render);
 	render();
 
-	const on = webmcpAvailable();
-	$('#wmcp-status').innerHTML = on
-		? `${badge('WebMCP connected', 'ok')} ${registeredTools().length} tools exposed to the agent`
-		: `${badge('WebMCP not detected', 'muted')} manual mode - open in a WebMCP-enabled browser to let an agent drive`;
+	if (!webmcpAvailable()) {
+		$('#wmcp-status').innerHTML = `${badge('WebMCP not detected', 'muted')} manual mode - open in Chrome 149+ with chrome://flags/#enable-webmcp-testing and the Model Context Tool Inspector extension`;
+		return;
+	}
+
+	await registerTools();
+	const s = toolStatus();
+	$('#wmcp-status').innerHTML =
+		s.registered === s.total
+			? `${badge('WebMCP connected', 'ok')} ${s.registered} tools exposed to the agent`
+			: `${badge('WebMCP partial', 'warn')} ${s.registered}/${s.total} tools registered - ${s.failed.join(', ')} failed (see console)`;
 }
 
 boot();
