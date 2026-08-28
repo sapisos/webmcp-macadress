@@ -94,10 +94,24 @@ file coupled to the WebMCP surface.
 Layered, because the Worker URL is public:
 
 1. **Key isolation** - `MACADRESS_API_KEY` is a Wrangler secret; the browser never sees it. Use a **dedicated low-quota key** so a leaked/abused URL caps out fast.
-2. **Rate limit** - 60 req / 60s per client IP (`RATE_LIMITER` binding).
-3. **CORS** - `ALLOWED_ORIGINS` pinned to the deployed page origin (stops browser cross-origin use; not curl).
-4. **Shared token** - set the `DEMO_TOKEN` secret and the Worker requires `X-Demo-Token` (or `?t=`) on every `/v1/*` call. `healthz` and CORS preflight are exempt. The web app ships the token in `config.js`, so it is friction + rotation control, not a true secret.
-5. **Route allowlist** - only `GET /v1/mac/:mac` and `POST /v1/mac/batch` (capped at `MAX_BATCH`) are proxied; everything else is 404.
+2. **Single entry point** - `workers_dev = false`, so the only hostname is `webmcp.macadress.com`. No `*.workers.dev` URL to bypass the edge rule below.
+3. **Origin lock (edge)** - a Cloudflare WAF custom rule on the `macadress.com` zone blocks any request to `webmcp.macadress.com` whose `Origin` header is not the demo page. `/healthz` stays open. Blocked requests never reach the Worker.
+
+   ```
+   (http.host eq "webmcp.macadress.com"
+     and http.request.uri.path ne "/healthz"
+     and not any(http.request.headers["origin"][*] eq "https://webmcp-macadress.pages.dev"))
+   ```
+
+4. **Rate limit** - 60 req / 60s per client IP (`RATE_LIMITER` binding).
+5. **CORS** - `ALLOWED_ORIGINS` pinned to the deployed page origin (response headers only; the Origin lock in 3 is what actually rejects non-browser callers).
+6. **Shared token** - set the `DEMO_TOKEN` secret and the Worker requires `X-Demo-Token` (or `?t=`) on every `/v1/*` call. `healthz` and CORS preflight are exempt. The web app ships the token in `config.js`, so it is friction + rotation control, not a true secret.
+7. **Route allowlist** - only `GET /v1/mac/:mac` and `POST /v1/mac/batch` (capped at `MAX_BATCH`) are proxied; everything else is 404.
+
+The Origin lock is spoofable by a non-browser client, so it is not cryptographic;
+it is layered on top of the low-quota key and rate limit. If the page ever moves
+onto `webmcp.macadress.com` itself (same origin), swap the rule to check
+`http.referer`, since browsers drop `Origin` on same-origin GETs.
 
 ## License
 

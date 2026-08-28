@@ -1,7 +1,9 @@
 name = "webmcp-macadress"
 main = "src/index.js"
 compatibility_date = "2026-08-01"
-workers_dev = true
+# Off: all traffic goes through webmcp.macadress.com, which the zone WAF rule
+# locks to the demo page's Origin. The *.workers.dev URL would bypass that rule.
+workers_dev = false
 preview_urls = false
 
 # Custom domain. The macadress.com zone must be in the same Cloudflare account.
