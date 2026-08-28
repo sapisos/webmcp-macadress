@@ -46,7 +46,16 @@ export default {
 
 		const single = url.pathname.match(/^\/v1\/mac\/([^/]+)$/);
 		if (request.method === 'GET' && single && single[1] !== 'batch') {
-			return proxy(env, `/v1/mac/${encodeURIComponent(single[1])}`, { method: 'GET' }, cors);
+			// Forward the MAC with its colons/dashes intact. The upstream API does
+			// not decode %3A, so re-encoding here breaks the lookup. decodeURIComponent
+			// normalises a caller that did encode it; both callers end up identical.
+			let mac = single[1];
+			try {
+				mac = decodeURIComponent(single[1]);
+			} catch {
+				/* malformed percent-encoding: pass through as-is */
+			}
+			return proxy(env, `/v1/mac/${mac}`, { method: 'GET' }, cors);
 		}
 
 		if (request.method === 'POST' && url.pathname === '/v1/mac/batch') {
