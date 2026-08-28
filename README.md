@@ -3,8 +3,8 @@
 A WebMCP app where a human and a browser agent triage a network's MAC addresses
 on the same surface: paste raw data, enrich every address against
 [macadress.com](https://macadress.com), slice the inventory, and export an
-allowlist. The seven buttons and the seven WebMCP tools do exactly the same
-things, so the agent and the person are editing one shared artifact.
+allowlist. The buttons and the WebMCP tools do exactly the same things, so the
+agent and the person are editing one shared artifact.
 
 Built for the [WebMCP Challenge](https://webmcp.devpost.com/) (OpenAI x Devpost).
 
@@ -19,12 +19,35 @@ Built for the [WebMCP Challenge](https://webmcp.devpost.com/) (OpenAI x Devpost)
 | Tool | Input | Effect |
 |---|---|---|
 | `add_mac_addresses` | `text` | Pull every MAC out of pasted text, add pending rows |
+| `load_sample_data` | - | Load the bundled sample capture and add every MAC in it |
 | `lookup_mac` | `mac` | Resolve one address, add it |
 | `enrich_inventory` | - | Resolve all pending rows (batched, falls back to per-row) |
 | `summarize_inventory` | - | Counts: randomized, unregistered, by vendor / device / virtualization |
 | `filter_inventory` | `field`, `value?` | Set the visible slice (`randomized`, `vendor`, `device`, ...) |
 | `export_filter_list` | `format` | Build `nftables` / `zeek` / `csv` from visible rows |
 | `clear_inventory` | - | Reset |
+
+## How WebMCP is implemented
+
+Every tool is registered with the imperative API:
+
+```js
+document.modelContext.registerTool({
+  name: "load_sample_data",
+  description: "Load the bundled sample capture and add every MAC in it",
+  inputSchema: { /* JSON Schema */ },
+  execute: async (input) => { /* returns a string */ },
+});
+```
+
+- [`web/wmcp.js`](web/wmcp.js) is the only file coupled to the spec. It resolves
+  the host (`document.modelContext`, falling back to `navigator.modelContext` and
+  to the older `provideContext({ tools })` shape), wraps each handler so its
+  return value is stringified for the agent, and reports how many tools actually
+  registered.
+- [`web/app.js`](web/app.js) defines the tool list (`TOOLS`) and an `ops` object.
+  The on-page buttons and the tool handlers both call `ops`, so the agent and the
+  human mutate one shared inventory. No separate agent view, no build step.
 
 ## Layout
 
@@ -77,14 +100,20 @@ Set the Worker's `ALLOWED_ORIGINS` to the deployed origin before the demo.
 
 ### 3. Drive it with an agent
 
-1. Chrome 149+ with `chrome://flags/#enable-webmcp-testing`.
-2. Install the [Model Context Tool Inspector](https://chromewebstore.google.com/detail/model-context-tool-inspec/gbpdfapgefenggkahomfgkhfehlcenpd) extension (Chrome has no built-in agent).
-3. Open the deployed URL. The status line reads `WebMCP connected - 7 tools`.
-4. In the Inspector panel: the 7 tools are listed and individually callable, and the prompt box (routed to `gemini-3-flash-preview`) lets you drive them in natural language:
+**ChatGPT in-app browser** - supports WebMCP natively. Open the deployed URL in it
+and ask ChatGPT to use the page tools directly.
 
-> Load the sample data, add every MAC to the inventory and enrich it. Then tell
-> me how many are privacy-randomized, filter to just those, and export an
-> nftables set.
+**Chrome 149+:**
+
+1. Enable `chrome://flags/#enable-webmcp-testing`.
+2. Install the [Model Context Tool Inspector](https://chromewebstore.google.com/detail/model-context-tool-inspec/gbpdfapgefenggkahomfgkhfehlcenpd) extension (Chrome has no built-in agent).
+3. Open the deployed URL. The status line reads `WebMCP connected - 8 tools`.
+4. In the Inspector panel the tools are listed and individually callable, and the prompt box (routed to `gemini-3.6-flash`) lets you drive them in natural language.
+
+Example prompt:
+
+> Load the sample data, enrich every MAC, tell me how many are privacy-randomized,
+> filter to just those, and export an nftables set.
 
 Without WebMCP the app still runs fully in manual mode. `web/wmcp.js` is the only
 file coupled to the WebMCP surface.

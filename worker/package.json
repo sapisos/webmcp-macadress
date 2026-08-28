@@ -3,6 +3,7 @@
 	"version": "0.1.0",
 	"private": true,
 	"type": "module",
+	"license": "MIT",
 	"description": "Cloudflare Worker that proxies the macadress.com API for the WebMCP demo, keeping the API key server-side.",
 	"scripts": {
 		"dev": "wrangler dev",

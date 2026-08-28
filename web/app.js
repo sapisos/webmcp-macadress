@@ -257,6 +257,18 @@ const TOOLS = [
 		handler: ({ text }) => ops.addMacs(text),
 	},
 	{
+		name: 'load_sample_data',
+		description:
+			'Load the bundled sample capture (a messy mix of ARP, DHCP and nmap output, about a dozen MAC addresses across real vendors, VMs and randomized addresses) into the input box and add every address to the inventory as a pending row. Use this to run the workflow without the human pasting data.',
+		inputSchema: { type: 'object', properties: {} },
+		handler: async () => {
+			const text = await fetch('./sample-data.txt').then((r) => r.text());
+			const input = document.querySelector('#input');
+			if (input) input.value = text;
+			return ops.addMacs(text);
+		},
+	},
+	{
 		name: 'lookup_mac',
 		description:
 			'Look up a single MAC address and add it to the inventory. Returns the full macadress.com record (vendor, device category, virtualization, special-use, randomization).',
@@ -303,7 +315,7 @@ const TOOLS = [
 			properties: { format: { type: 'string', enum: ['nftables', 'zeek', 'csv'], default: 'nftables' } },
 			required: ['format'],
 		},
-		handler: ({ format }) => ({ format, text: ops.exportList(format) }),
+		handler: ({ format }) => ops.exportList(format),
 	},
 	{
 		name: 'clear_inventory',

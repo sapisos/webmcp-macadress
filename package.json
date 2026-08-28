@@ -1,0 +1,20 @@
+{
+	"name": "webmcp-macadress",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"description": "MAC Inventory Workbench: a WebMCP app where a human and a browser agent triage a network's MAC addresses on one shared surface.",
+	"license": "MIT",
+	"homepage": "https://webmcp-macadress.pages.dev",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/sapisos/webmcp-macadress.git"
+	},
+	"keywords": [
+		"webmcp",
+		"mcp",
+		"model-context-protocol",
+		"macaddress",
+		"cloudflare-workers"
+	]
+}
