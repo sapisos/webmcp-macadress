@@ -208,10 +208,13 @@ const ops = {
 
 	exportList(format) {
 		const rows = visibleRows().filter((r) => r.status === 'ok');
-		const label = (d) =>
-			[d.organization || 'unknown-vendor', d.device && d.device.category, isRandomized(d) && 'randomized']
+		const label = (d) => {
+			const platform = d.virtualization && d.virtualization.detected && (d.virtualization.platform || 'virtual');
+			const device = d.device && d.device.category !== 'unknown' && d.device.category;
+			return [d.organization || platform || 'unregistered', device, isRandomized(d) && 'randomized']
 				.filter(Boolean)
 				.join(' / ');
+		};
 		if (format === 'zeek') {
 			const lines = rows.map((r) => `${r.mac}\t${label(r.data)}`);
 			return `# fields\tmac\tannotation\n${lines.join('\n')}\n`;
