@@ -2,17 +2,26 @@ name = "webmcp-macadress"
 main = "src/index.js"
 compatibility_date = "2026-08-01"
 workers_dev = true
+preview_urls = false
+
+# Custom domain. The macadress.com zone must be in the same Cloudflare account.
+# wrangler provisions the proxied DNS record and the edge TLS cert automatically.
+routes = [
+  { pattern = "webmcp.macadress.com", custom_domain = true }
+]
 
 [vars]
-# Comma-separated allowed origins. Use "*" while building; set it to your
-# deployed web app origin (e.g. https://webmcp-macadress.pages.dev) before the demo.
-ALLOWED_ORIGINS = "*"
+# Locked to the deployed web app. Update if you host the page elsewhere.
+ALLOWED_ORIGINS = "https://webmcp-macadress.pages.dev"
 MAX_BATCH = "50"
 
-# Optional: 60 requests / 60s per client IP. Free, no KV needed.
-# If wrangler rejects this block, delete it - the Worker falls open without it.
+# 60 requests / 60s per client IP. Free, no KV.
 [[unsafe.bindings]]
 name = "RATE_LIMITER"
 type = "ratelimit"
 namespace_id = "1001"
 simple = { limit = 60, period = 60 }
+
+# Secrets (set with `wrangler secret put`, never in this file):
+#   MACADRESS_API_KEY  - required, the macadress.com Bearer key
+#   DEMO_TOKEN         - optional; when set, callers must send X-Demo-Token or ?t=

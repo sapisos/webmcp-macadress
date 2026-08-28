@@ -1,6 +1,13 @@
 import { defineTool, webmcpAvailable, registeredTools } from './wmcp.js';
 
 const PROXY = (window.MACADRESS_PROXY || '').replace(/\/$/, '');
+const DEMO_TOKEN = window.MACADRESS_DEMO_TOKEN || '';
+
+function apiHeaders(extra) {
+	const h = { ...(extra || {}) };
+	if (DEMO_TOKEN) h['X-Demo-Token'] = DEMO_TOKEN;
+	return h;
+}
 
 /* ------------------------------------------------------------------ state */
 
@@ -81,7 +88,9 @@ function visibleRows() {
 
 async function apiGet(mac) {
 	if (!PROXY) throw new Error('Set window.MACADRESS_PROXY in config.js to your Worker URL.');
-	const res = await fetch(`${PROXY}/v1/mac/${encodeURIComponent(mac)}`);
+	const res = await fetch(`${PROXY}/v1/mac/${encodeURIComponent(mac)}`, {
+		headers: apiHeaders(),
+	});
 	const body = await res.json().catch(() => ({}));
 	if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
 	return body;
@@ -93,7 +102,7 @@ async function apiBatch(macs) {
 		const chunk = macs.slice(i, i + 40);
 		const res = await fetch(`${PROXY}/v1/mac/batch`, {
 			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
+			headers: apiHeaders({ 'Content-Type': 'application/json' }),
 			body: JSON.stringify({ macs: chunk }),
 		});
 		if (!res.ok) throw new Error(`batch HTTP ${res.status}`);

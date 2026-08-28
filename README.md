@@ -48,12 +48,19 @@ Deploy:
 
 ```sh
 npx wrangler login
-npx wrangler secret put MACADRESS_API_KEY
-npx wrangler deploy                   # -> https://webmcp-macadress.<subdomain>.workers.dev
+npx wrangler secret put MACADRESS_API_KEY     # required
+npx wrangler secret put DEMO_TOKEN            # optional shared token (see Security)
+npx wrangler deploy
 ```
 
-Free Cloudflare plan is enough (100k req/day, no card). See `worker/wrangler.toml`
-for the optional per-IP rate limit.
+Free Cloudflare plan is enough (100k req/day, no card).
+
+`worker/wrangler.toml` also has:
+
+- a per-IP rate limit (`60 / 60s`) via the free rate-limit binding
+- a custom domain: `webmcp.macadress.com` (`custom_domain = true`). The zone must
+  be in the same Cloudflare account; wrangler provisions DNS + TLS. Drop the
+  `routes` block to use the `*.workers.dev` URL instead.
 
 ### 2. Web app
 
@@ -82,9 +89,13 @@ Without WebMCP the app still runs fully in manual mode.
 
 ## Security
 
-The API key lives only in the Worker as a Wrangler secret. The browser never
-sees it. For a public demo, use a dedicated low-quota key, keep the rate-limit
-binding, and pin `ALLOWED_ORIGINS` to your app's origin.
+Layered, because the Worker URL is public:
+
+1. **Key isolation** - `MACADRESS_API_KEY` is a Wrangler secret; the browser never sees it. Use a **dedicated low-quota key** so a leaked/abused URL caps out fast.
+2. **Rate limit** - 60 req / 60s per client IP (`RATE_LIMITER` binding).
+3. **CORS** - `ALLOWED_ORIGINS` pinned to the deployed page origin (stops browser cross-origin use; not curl).
+4. **Shared token** - set the `DEMO_TOKEN` secret and the Worker requires `X-Demo-Token` (or `?t=`) on every `/v1/*` call. `healthz` and CORS preflight are exempt. The web app ships the token in `config.js`, so it is friction + rotation control, not a true secret.
+5. **Route allowlist** - only `GET /v1/mac/:mac` and `POST /v1/mac/batch` (capped at `MAX_BATCH`) are proxied; everything else is 404.
 
 ## License
 

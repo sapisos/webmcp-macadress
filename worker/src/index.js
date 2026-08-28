@@ -25,6 +25,17 @@ export default {
 			return json({ ok: true }, 200, cors);
 		}
 
+		// Optional shared-token gate. Not a real secret (the web app ships it to
+		// the browser) - it raises the bar past "curl the URL you found" and lets
+		// the token be rotated. Real protection is the low-quota key + rate limit.
+		if (env.DEMO_TOKEN) {
+			const provided =
+				request.headers.get('X-Demo-Token') || url.searchParams.get('t');
+			if (provided !== env.DEMO_TOKEN) {
+				return json({ error: 'Missing or invalid demo token.' }, 401, cors);
+			}
+		}
+
 		if (env.RATE_LIMITER) {
 			const ip = request.headers.get('CF-Connecting-IP') || 'anon';
 			const { success } = await env.RATE_LIMITER.limit({ key: ip });
@@ -104,7 +115,7 @@ function corsHeaders(env, origin) {
 	return {
 		'Access-Control-Allow-Origin': value,
 		'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-		'Access-Control-Allow-Headers': 'Content-Type',
+		'Access-Control-Allow-Headers': 'Content-Type, X-Demo-Token',
 		Vary: 'Origin',
 	};
 }

@@ -1,3 +1,7 @@
-// Point this at your deployed Cloudflare Worker (see /worker).
-// For local dev with `wrangler dev`, that is http://localhost:8787
-window.MACADRESS_PROXY = 'http://localhost:8787';
+// Deployed Cloudflare Worker (see /worker).
+window.MACADRESS_PROXY = 'https://webmcp.macadress.com';
+
+// Must match the Worker's DEMO_TOKEN secret. This is shipped to the browser,
+// so it is friction + rotation control, not a secret. Leave '' if the Worker
+// has no DEMO_TOKEN set (e.g. local dev).
+window.MACADRESS_DEMO_TOKEN = '';
