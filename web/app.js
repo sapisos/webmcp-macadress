@@ -3,9 +3,36 @@ import { defineTool, webmcpAvailable, toolStatus } from './wmcp.js';
 const PROXY = (window.MACADRESS_PROXY || '').replace(/\/$/, '');
 const DEMO_TOKEN = window.MACADRESS_DEMO_TOKEN || '';
 
+/* --------------------------------------------------- bring-your-own API key */
+
+const KEY_STORAGE = 'macadress_api_key';
+
+function loadUserKey() {
+	try {
+		return (localStorage.getItem(KEY_STORAGE) || '').trim();
+	} catch {
+		return '';
+	}
+}
+
+let userKey = loadUserKey();
+
+function saveUserKey(value) {
+	userKey = (value || '').trim();
+	try {
+		if (userKey) localStorage.setItem(KEY_STORAGE, userKey);
+		else localStorage.removeItem(KEY_STORAGE);
+	} catch {
+		/* storage blocked: the key still lives in memory for this session */
+	}
+}
+
+// With a user key, hit the caller's own quota and drop the demo token so the
+// preflight only carries the header the request actually needs.
 function apiHeaders(extra) {
 	const h = { ...(extra || {}) };
-	if (DEMO_TOKEN) h['X-Demo-Token'] = DEMO_TOKEN;
+	if (userKey) h['X-Macadress-Key'] = userKey;
+	else if (DEMO_TOKEN) h['X-Demo-Token'] = DEMO_TOKEN;
 	return h;
 }
 
@@ -395,6 +422,17 @@ function render() {
 	renderTable();
 }
 
+function renderKeyStatus() {
+	const input = $('#api-key');
+	const summary = $('#key-summary');
+	if (input && document.activeElement !== input) input.value = userKey;
+	if (summary) {
+		summary.innerHTML = userKey
+			? `${badge('Your key', 'ok')} lookups run against your macadress.com quota`
+			: `${badge('Demo key', 'muted')} shared quota and rate limit. Expand to use your own key.`;
+	}
+}
+
 function wireUI() {
 	$('#parse').addEventListener('click', () => {
 		const r = ops.addMacs($('#input').value);
@@ -421,6 +459,17 @@ function wireUI() {
 		$('#output').value = text;
 		$('#output').hidden = false;
 	});
+	$('#key-save').addEventListener('click', () => {
+		saveUserKey($('#api-key').value);
+		renderKeyStatus();
+		toast(userKey ? 'Saved. Using your API key.' : 'Key cleared, back to the demo key.');
+	});
+	$('#key-clear').addEventListener('click', () => {
+		saveUserKey('');
+		$('#api-key').value = '';
+		renderKeyStatus();
+		toast('Key cleared, back to the demo key.');
+	});
 }
 
 let toastTimer;
@@ -436,6 +485,7 @@ function toast(msg) {
 
 async function boot() {
 	wireUI();
+	renderKeyStatus();
 	onChange(render);
 	render();
 

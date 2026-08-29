@@ -24,6 +24,23 @@
 				Try asking your agent:
 				<em>"Load the sample data, enrich every MAC, filter to virtualized, and export an nftables set."</em>
 			</p>
+
+			<details class="keybox">
+				<summary id="key-summary"></summary>
+				<div class="keybox-body">
+					<p class="hint">
+						This page uses a shared demo key with a strict rate limit. Paste your own
+						<a href="https://macadress.com" target="_blank" rel="noopener">macadress.com</a> API key to use your own quota
+						instead. It is kept in this browser only (localStorage, in the clear) and sent to the proxy solely to authorize
+						your lookups.
+					</p>
+					<div class="row">
+						<input id="api-key" type="password" placeholder="macadress.com API key" autocomplete="off" spellcheck="false" />
+						<button id="key-save">Save</button>
+						<button id="key-clear" class="ghost">Clear</button>
+					</div>
+				</div>
+			</details>
 		</header>
 
 		<main>

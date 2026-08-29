@@ -25,10 +25,16 @@ export default {
 			return json({ ok: true }, 200, cors);
 		}
 
+		// Bring-your-own-key. When the caller sends X-Macadress-Key the Worker
+		// forwards that key upstream instead of MACADRESS_API_KEY, and the demo
+		// gate + shared rate limit are skipped: it is the caller's own quota.
+		const userKey = (request.headers.get('X-Macadress-Key') || '').trim();
+		const byok = userKey !== '';
+
 		// Optional shared-token gate. Not a real secret (the web app ships it to
 		// the browser) - it raises the bar past "curl the URL you found" and lets
 		// the token be rotated. Real protection is the low-quota key + rate limit.
-		if (env.DEMO_TOKEN) {
+		if (env.DEMO_TOKEN && !byok) {
 			const provided =
 				request.headers.get('X-Demo-Token') || url.searchParams.get('t');
 			if (provided !== env.DEMO_TOKEN) {
@@ -36,7 +42,7 @@ export default {
 			}
 		}
 
-		if (env.RATE_LIMITER) {
+		if (env.RATE_LIMITER && !byok) {
 			const ip = request.headers.get('CF-Connecting-IP') || 'anon';
 			const { success } = await env.RATE_LIMITER.limit({ key: ip });
 			if (!success) {
@@ -55,7 +61,7 @@ export default {
 			} catch {
 				/* malformed percent-encoding: pass through as-is */
 			}
-			return proxy(env, `/v1/mac/${mac}`, { method: 'GET' }, cors);
+			return proxy(env, `/v1/mac/${mac}`, { method: 'GET' }, cors, userKey);
 		}
 
 		if (request.method === 'POST' && url.pathname === '/v1/mac/batch') {
@@ -82,6 +88,7 @@ export default {
 					body: JSON.stringify({ macs }),
 				},
 				cors,
+				userKey,
 			);
 		}
 
@@ -89,8 +96,9 @@ export default {
 	},
 };
 
-async function proxy(env, path, init, cors) {
-	if (!env.MACADRESS_API_KEY) {
+async function proxy(env, path, init, cors, userKey) {
+	const key = userKey || env.MACADRESS_API_KEY;
+	if (!key) {
 		return json({ error: 'Worker is missing MACADRESS_API_KEY (wrangler secret put).' }, 500, cors);
 	}
 	let res;
@@ -99,7 +107,7 @@ async function proxy(env, path, init, cors) {
 			...init,
 			headers: {
 				...(init.headers || {}),
-				Authorization: `Bearer ${env.MACADRESS_API_KEY}`,
+				Authorization: `Bearer ${key}`,
 				Accept: 'application/json',
 				'User-Agent': 'webmcp-macadress-proxy',
 			},
@@ -113,7 +121,8 @@ async function proxy(env, path, init, cors) {
 		headers: {
 			...cors,
 			'Content-Type': 'application/json',
-			'Cache-Control': res.ok ? 'public, max-age=86400' : 'no-store',
+			// Never share a caller's own-key response through a shared cache.
+			'Cache-Control': userKey ? 'no-store' : res.ok ? 'public, max-age=86400' : 'no-store',
 		},
 	});
 }
@@ -124,7 +133,7 @@ function corsHeaders(env, origin) {
 	return {
 		'Access-Control-Allow-Origin': value,
 		'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-		'Access-Control-Allow-Headers': 'Content-Type, X-Demo-Token',
+		'Access-Control-Allow-Headers': 'Content-Type, X-Demo-Token, X-Macadress-Key',
 		Vary: 'Origin',
 	};
 }

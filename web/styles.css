@@ -97,7 +97,9 @@ main {
 }
 
 textarea,
-select {
+select,
+input[type='text'],
+input[type='password'] {
 	width: 100%;
 	background: #0e1015;
 	color: var(--text);
@@ -105,6 +107,32 @@ select {
 	border-radius: 8px;
 	padding: 10px;
 	font: inherit;
+}
+
+input[type='text'],
+input[type='password'] {
+	flex: 1;
+	min-width: 220px;
+	padding: 8px 10px;
+}
+
+.keybox {
+	margin-top: 10px;
+	font-size: 13px;
+}
+
+.keybox summary {
+	cursor: pointer;
+	color: var(--muted);
+	list-style: none;
+}
+
+.keybox summary::-webkit-details-marker {
+	display: none;
+}
+
+.keybox-body {
+	margin-top: 8px;
 }
 
 textarea {

@@ -118,6 +118,20 @@ Example prompt:
 Without WebMCP the app still runs fully in manual mode. `web/wmcp.js` is the only
 file coupled to the WebMCP surface.
 
+## Bring your own key
+
+The page runs on a shared demo key with a per-IP rate limit. Anyone who does not
+want those limits can open the **Demo key** disclosure in the header and paste
+their own [macadress.com](https://macadress.com) key. The key is stored in that
+browser's `localStorage` and sent to the Worker as `X-Macadress-Key`; the Worker
+forwards it upstream instead of `MACADRESS_API_KEY` and skips both the
+`DEMO_TOKEN` gate and the shared rate limit for that call. Own-key responses are
+returned `no-store` so they never land in a shared cache. Clearing the field
+returns the page to the demo key.
+
+`api.macadress.com` sends no CORS headers, so the key still goes through the
+Worker rather than straight from the browser.
+
 ## Security
 
 Layered, because the Worker URL is public:
